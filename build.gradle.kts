@@ -1,39 +1,12 @@
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
     id("java-library")
-    id("maven-publish")
+    `maven-publish`
+    signing
+    id("com.vanniktech.maven.publish") version "0.30.0"
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
-            groupId = "io.github.livenne"
-            artifactId = "aero"
-            version = "1.0.0"
-            pom {
-                name = "Aero"
-                description = "A lightweight Java web framework"
-                url = "https://github.com/livenne/aero"
-                licenses {
-                    license {
-                        name = "The Apache License, Version 2.0"
-                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-                    }
-                }
-                developers {
-                    developer {
-                        id = "livenne"
-                        name = "Livenne"
-                        email = "livennea@gmail.com"
-                    }
-                }
-            }
-        }
-    }
-    repositories {
-        mavenLocal()
-    }
-}
 
 repositories {
     mavenCentral()
@@ -44,8 +17,39 @@ version = "1.0.0"
 
 java {
     withSourcesJar()
+    withJavadocJar()
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+}
+
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+
+    pom {
+        name = "Aero"
+        description = "A lightweight web framework"
+        url = "https://github.com/Livenne/Aero"
+        licenses {
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+                distribution = "repo"
+            }
+        }
+        developers {
+            developer {
+                id = "Livenne"
+                name = "livenne"
+                email = "livennea@gmail.com"
+            }
+        }
+        scm {
+            connection = "scm:git:git://github.com/Livenne/Aero.git"
+            developerConnection = "scm:git:ssh://github.com/Livenne/Aero.git"
+            url = "https://github.com/Livenne/Aero"
+        }
+    }
 }
 
 dependencies {
