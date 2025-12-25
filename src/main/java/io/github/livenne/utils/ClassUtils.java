@@ -5,7 +5,6 @@ import org.reflections.scanners.Scanners;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -13,7 +12,7 @@ public class ClassUtils {
     public static Set<Class<?>> scanAllClass(Class<?> clazz) {
         Reflections reflections = new Reflections(new ConfigurationBuilder()
                 .setUrls(ClasspathHelper.forPackage(clazz.getPackageName(), clazz.getClassLoader()))
-                .setScanners(Scanners.SubTypes.filterResultsBy(_ -> true))
+                .setScanners(Scanners.SubTypes.filterResultsBy(s -> true))
         );
         return new HashSet<>(reflections.getSubTypesOf(Object.class));
     }

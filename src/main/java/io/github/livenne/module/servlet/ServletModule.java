@@ -4,16 +4,15 @@ import io.github.livenne.*;
 import io.github.livenne.Module;
 import io.github.livenne.annotation.context.Component;
 import io.github.livenne.annotation.context.Value;
-import io.github.livenne.annotation.servlet.ExceptionHandler;
-import io.github.livenne.annotation.servlet.Controller;
-import io.github.livenne.annotation.servlet.ControllerAdvice;
-import io.github.livenne.annotation.servlet.GetMapping;
-import io.github.livenne.annotation.servlet.PostMapping;
+import io.github.livenne.annotation.servlet.*;
 import io.github.livenne.utils.AnnotationUtils;
+import jakarta.servlet.Filter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.LifecycleException;
+import org.apache.tomcat.util.descriptor.web.FilterDef;
+import org.apache.tomcat.util.descriptor.web.FilterMap;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -31,6 +30,7 @@ public class ServletModule implements Module {
     private BeanFactory beanFactory;
     private Set<Object> controllerSet;
     private Set<Object> controllerAdviceSet;
+    private Set<Object> interceptorSet;
     private final Set<RouterMapping>  routerMappingSet = new HashSet<>();
     private final Set<ExceptionHandle> exceptionHandleSet = new HashSet<>();
 
@@ -43,12 +43,27 @@ public class ServletModule implements Module {
         this.controllerSet.forEach(this::routerMethodMapping);
         this.controllerAdviceSet = this.beanFactory.getBeans(o -> AnnotationUtils.isAnnotationPresent(o.getClass(), ControllerAdvice.class));
         this.controllerAdviceSet.forEach(this::controllerAdviceSetMapping);
-        TomcatServer tomcatServer = new TomcatServer(port,new ServiceServlet(routerMappingSet, exceptionHandleSet));
-        try {
-            tomcatServer.start();
-        } catch (IOException | LifecycleException e) {
-            throw new RuntimeException(e.getMessage(),e.getCause());
-        }
+        TomcatServer tomcatServer = new TomcatServer(port,new ServiceServlet(routerMappingSet, exceptionHandleSet),application);
+        this.interceptorSet = this.beanFactory.getBeans(o -> AnnotationUtils.isAnnotationPresent(o.getClass(), Interceptor.class));
+        tomcatServer.start();
+        this.interceptorSet.forEach(interceptor->registerInterceptor(tomcatServer,interceptor));
+    }
+
+    public void registerInterceptor(TomcatServer tomcatServer,Object interceptor) {
+        FilterDef filterDef = new FilterDef();
+        filterDef.setFilterName(interceptor.getClass().getSimpleName());
+        filterDef.setFilterClass(interceptor.getClass().getName());
+        filterDef.setFilter((Filter) interceptor);
+
+        FilterMap filterMap = new FilterMap();
+        filterMap.setFilterName(interceptor.getClass().getSimpleName());
+        //TODO
+        filterMap.addURLPattern("/*");
+        filterMap.setDispatcher("REQUEST");
+
+        tomcatServer.getContext().addFilterDef(filterDef);
+        tomcatServer.getContext().addFilterMap(filterMap);
+
     }
 
 

@@ -2,6 +2,7 @@ package io.github.livenne;
 
 import io.github.livenne.annotation.context.Autowired;
 import io.github.livenne.annotation.context.PostConstruct;
+import io.github.livenne.annotation.context.PreDestroy;
 import io.github.livenne.annotation.context.Value;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -17,6 +18,7 @@ public class BeanDefinition {
     private final Class<?> classType;
     private final Constructor<?> constructor;
     private final Method[] postConstructMethods;
+    private final Method[] preDestroyMethods;
     private final Field[] autowiredFields;
     private final Field[] configurationFields;
 
@@ -32,6 +34,10 @@ public class BeanDefinition {
         this.postConstructMethods = Arrays
                 .stream(clazz.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(PostConstruct.class))
+                .toArray(Method[]::new);
+        this.preDestroyMethods = Arrays
+                .stream(clazz.getDeclaredMethods())
+                .filter(method -> method.isAnnotationPresent(PreDestroy.class))
                 .toArray(Method[]::new);
         this.configurationFields = Arrays
                 .stream(clazz.getDeclaredFields())

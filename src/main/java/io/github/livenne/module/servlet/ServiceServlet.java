@@ -83,7 +83,6 @@ public class ServiceServlet extends HttpServlet {
     }
 
     private Object reqHandle(RouterMapping routerMapping,HttpServletRequest req,HttpServletResponse res) throws Exception{
-
         String requestPath = routerMapping.getRequestPath();
         Method method = routerMapping.getMethod();
         Object controller = routerMapping.getInstance();
@@ -117,6 +116,7 @@ public class ServiceServlet extends HttpServlet {
     }
 
     private Object exceptionHandle(Exception e){
+        log.error(e.getMessage(),e.getCause());
         ExceptionHandle exceptionHandle = exceptionHandleSet.stream()
                 .filter(eh -> eh.getException().equals(e.getClass()))
                 .findAny()
@@ -124,7 +124,6 @@ public class ServiceServlet extends HttpServlet {
                         .filter(eh -> eh.getException().isAssignableFrom(e.getClass()))
                         .findAny().orElseThrow()
                 );
-
         Object instance = exceptionHandle.getInstance();
         Method handler = exceptionHandle.getMethod();
         try {

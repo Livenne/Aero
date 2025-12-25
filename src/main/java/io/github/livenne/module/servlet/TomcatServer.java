@@ -1,7 +1,10 @@
 package io.github.livenne.module.servlet;
 
+import io.github.livenne.Application;
 import jakarta.servlet.MultipartConfigElement;
 import jakarta.servlet.Servlet;
+import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
@@ -20,14 +23,29 @@ public class TomcatServer {
     private final Tomcat tomcat;
     private final int port;
     private final Servlet servlet;
+    private final Application application;
+    private Thread thread;
+    @Getter
+    private Context context;
 
-    public TomcatServer(int port, Servlet servlet) {
+    public TomcatServer(int port, Servlet servlet, Application application) {
+        this.application = application;
         this.tomcat = new Tomcat();
         this.port = port;
         this.servlet = servlet;
     }
 
-    public void start() throws IOException, LifecycleException {
+    @SneakyThrows
+    public void start(){
+        application.addShutdownHook(() -> {
+            try {
+                tomcat.stop();
+                tomcat.destroy();
+            } catch (LifecycleException e) {
+                System.out.println(e.getMessage());
+                throw new RuntimeException(e);
+            }
+        });
         System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
         System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
         SLF4JBridgeHandler.removeHandlersForRootLogger();
@@ -35,13 +53,13 @@ public class TomcatServer {
         tomcat.setPort(port);
         String tempDir = createTempDir();
         tomcat.setBaseDir(tempDir);
-        Context ctx = tomcat.addContext("", tempDir);
+        context = tomcat.addContext("", tempDir);
 
         File uploadTempDir = new File(tempDir, "upload-tmp");
         if (!uploadTempDir.exists()) {
             Files.createDirectory(uploadTempDir.toPath());
         }
-        Wrapper wrapper = Tomcat.addServlet(ctx, "ServiceServlet", servlet);
+        Wrapper wrapper = Tomcat.addServlet(context, "ServiceServlet", servlet);
         wrapper.setMultipartConfigElement(
                 new MultipartConfigElement(
                         uploadTempDir.getAbsolutePath(),
@@ -50,12 +68,18 @@ public class TomcatServer {
                         1024 * 1024
                 )
         );
-        ctx.setAllowCasualMultipartParsing(true);
-        ctx.addServletMappingDecoded("/*", "ServiceServlet");
-        tomcat.getConnector();
-        tomcat.start();
-        Thread.currentThread().setName("Tomcat-Server-Main");
-        tomcat.getServer().await();
+        context.setAllowCasualMultipartParsing(true);
+        context.addServletMappingDecoded("/*", "ServiceServlet");
+        thread = new Thread(new Runnable() {
+            @Override
+            @SneakyThrows
+            public void run() {
+            tomcat.getConnector();
+            tomcat.start();
+            tomcat.getServer().await();
+        }});
+        thread.setName("Tomcat-Server-Main");
+        thread.start();
     }
 
     public void stop() {

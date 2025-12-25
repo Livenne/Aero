@@ -5,12 +5,13 @@ import io.github.livenne.annotation.context.Value;
 import io.github.livenne.utils.AnnotationUtils;
 import io.github.livenne.utils.ClassUtils;
 import io.github.livenne.utils.StringUtils;
-import lombok.SneakyThrows;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -19,11 +20,12 @@ public class ComponentBeanFactory implements BeanFactory {
     private final Set<Class<?>> classSet;
     private final Set<BeanDefinition> beanDefinitionSet;
     private final Map<String,Object> beanMap;
-
+    private final Application application;
     private final ApplicationProperties properties;
     private final Set<Class<?>> sources;
 
     public ComponentBeanFactory(Application application){
+        this.application = application;
         this.beanMap = new HashMap<>();
         this.properties = application.getApplicationProperties();
         this.sources = application.getPrimarySources();
@@ -33,6 +35,7 @@ public class ComponentBeanFactory implements BeanFactory {
         autoWired();
         configurationInject();
         postConstruct();
+        preDestroy();
     }
 
     public void createBeans(){
@@ -89,6 +92,22 @@ public class ComponentBeanFactory implements BeanFactory {
                     throw new RuntimeException(e);
                 }
             }
+        });
+    }
+
+    public void preDestroy() {
+        this.beanDefinitionSet.forEach(bf->{
+            Object bean = getBean(bf.getName());
+            application.addShutdownHook(()->{
+                for (Method method : bf.getPreDestroyMethods()) {
+                    method.setAccessible(true);
+                    try {
+                        method.invoke(bean);
+                    } catch (IllegalAccessException | InvocationTargetException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
         });
     }
 

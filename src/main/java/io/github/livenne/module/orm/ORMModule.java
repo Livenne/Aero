@@ -3,9 +3,12 @@ package io.github.livenne.module.orm;
 import io.github.livenne.*;
 import io.github.livenne.Module;
 import io.github.livenne.annotation.context.Component;
+import io.github.livenne.annotation.context.PreDestroy;
 import io.github.livenne.annotation.context.Value;
+import io.github.livenne.annotation.orm.ColumnType;
+import io.github.livenne.annotation.orm.Entity;
+import io.github.livenne.annotation.orm.Id;
 import io.github.livenne.annotation.orm.Repository;
-import io.github.livenne.annotation.orm.*;
 import io.github.livenne.utils.AnnotationUtils;
 import io.github.livenne.utils.ClassUtils;
 import io.github.livenne.utils.SQLUtils;
@@ -15,8 +18,11 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.sql.*;
-import java.util.*;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Slf4j
 @Component
@@ -34,6 +40,7 @@ public class ORMModule implements Module {
     private static ConcurrentLinkedQueue<Connection> connectionPool;
     private Context context;
     private BeanFactory beanFactory;
+//    private static final ExecutorService executorService = Executors.newScheduledThreadPool(2);
 
     @Override
     public void load(Application application) {
@@ -48,6 +55,17 @@ public class ORMModule implements Module {
                 .filter(c -> AnnotationUtils.isAnnotationPresent(c, Repository.class))
                 .forEach(c->beanFactory.addBean(c.getName(),repositoryImpl(c)));
         beanFactory.autoWired();
+    }
+
+    @PreDestroy
+    public void destroy(){
+        connectionPool.forEach(connection -> {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private boolean connectDatabase(){
@@ -70,6 +88,7 @@ public class ORMModule implements Module {
     }
 
     public static Object sqlExecutor(SqlFunction<Connection,Object> operation){
+
         Connection connection = getConnection();
         Object result = null;
         try {
@@ -105,7 +124,8 @@ public class ORMModule implements Module {
         String tableName = entityClass.getAnnotation(Entity.class).value();
         sqlExecutor(conn -> {
             DatabaseMetaData metaData = conn.getMetaData();
-            try (ResultSet checkTable = metaData.getTables(null, null, tableName, new String[]{"TABLE"})){
+            String catalog = conn.getCatalog();
+            try (ResultSet checkTable = metaData.getTables(catalog, null, tableName, new String[]{"TABLE"})){
                 if (checkTable.next()){
                     tablePatch(entityClass,tableName);
                 }else {
