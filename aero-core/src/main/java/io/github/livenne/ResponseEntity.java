@@ -14,6 +14,7 @@ public class ResponseEntity {
         this.code = code;
         this.message = message;
         this.data = data;
+        
     }
 
     public static ResponseEntity ok(){

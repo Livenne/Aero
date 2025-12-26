@@ -19,7 +19,7 @@ configure<SigningExtension> {
 }
 
 mavenPublishing {
-    coordinates("io.github.livenne", "aero", "1.0.2")
+    coordinates("io.github.livenne", "aero", "1.0.3")
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
     signAllPublications()
 

@@ -110,7 +110,9 @@ public class SQLMethodProxy implements InvocationHandler {
                 Object obj = args[i];
                 for (Field field : obj.getClass().getDeclaredFields()) {
                     field.setAccessible(true);
-                    map.put(field.getName(),field.get(obj));
+                    if (field.get(obj) != null) {
+                        map.put(field.getName(),field.get(obj));
+                    }
                 }
             }
         }
