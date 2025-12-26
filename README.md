@@ -104,6 +104,10 @@ public class Main {
 Create `application.properties` in the `resources` directory:
 
 ```properties
+database.url=jdbc:mysql://localhost:3306/wanmall
+database.driver=com.mysql.cj.jdbc.Driver
+database.username=root
+database.password=root
 server.port=8080
 ```
 
