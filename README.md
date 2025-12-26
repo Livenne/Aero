@@ -2,6 +2,11 @@
 
 Aero is a lightweight, fast-starting Java Web framework that provides a Spring Boot-like development experience with a smaller footprint and faster startup time. The framework features a modular architecture design with built-in dependency injection, MVC, and ORM capabilities.
 
+## 🌐 Language
+
+- [English README](README.md)
+- [中文说明](README_zh.md)
+
 ## 🚀 Core Features
 
 - **Lightweight Architecture**: Fast startup with minimal resource consumption
